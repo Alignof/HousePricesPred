@@ -1,99 +1,27 @@
 use polars::prelude::*;
 
-use smartcore::dataset::*;
-// DenseMatrix wrapper around Vec
-use smartcore::linalg::naive::dense_matrix::DenseMatrix;
-use smartcore::linear::ridge_regression::{RidgeRegression, RidgeRegressionParameters};
-// Model performance
-use smartcore::metrics::mean_squared_error;
-use smartcore::model_selection::train_test_split;
+fn main() -> Result<()> {
+    let train_path = "data/train.csv";
+    let df = CsvReader::from_path(train_path)?
+        .infer_schema(None)
+        .with_delimiter(b',')
+        .has_header(true)
+        .finish()?;
 
-fn main() {
-    let data_path = "data/train.csv";
+    let train_df = df.select(
+        vec![
+            "Id",
+            "LotArea",
+            "OverallQual",
+            "OverallCond",
+            "TotalBsmtSF",
+            "1stFlrSF",
+            "GarageCars",
+        ]        
+    )?;
+
+    dbg!(train_df);
+
+    Ok(())
 }
 
-fn get_schema() -> Schema {
-    Schema::new(vec![
-        Field::new("Id",			DataType::UInt32),
-        Field::new("MSSubClass",	DataType::UInt32),
-        Field::new("MSZoning",		DataType::Utf8),
-        Field::new("LotFrontage",	DataType::UInt32),
-        Field::new("LotArea",		DataType::UInt32),
-        Field::new("Street",		DataType::Utf8),
-        Field::new("Alley",			DataType::Utf8),
-        Field::new("LotShape",		DataType::Utf8),
-        Field::new("LandContour",	DataType::Utf8),
-        Field::new("Utilities",		DataType::Utf8),
-        Field::new("LotConfig",		DataType::Utf8),
-        Field::new("LandSlope",		DataType::Utf8),
-        Field::new("Neighborhood",	DataType::Utf8),
-        Field::new("Condition1",	DataType::Utf8),
-        Field::new("Condition2",	DataType::Utf8),
-        Field::new("BldgType",		DataType::Utf8),
-        Field::new("HouseStyle",	DataType::Utf8),
-        Field::new("OverallQual",	DataType::UInt32),
-        Field::new("OverallCond",	DataType::UInt32),
-        Field::new("YearBuilt",		DataType::UInt32),
-        Field::new("YearRemodAdd",	DataType::UInt32),
-        Field::new("RoofStyle",		DataType::Utf8),
-        Field::new("RoofMatl",		DataType::Utf8),
-        Field::new("Exterior1st",	DataType::Utf8),
-        Field::new("Exterior2nd",	DataType::Utf8),
-        Field::new("MasVnrType",	DataType::Utf8),
-        Field::new("MasVnrArea",	DataType::UInt32),
-        Field::new("ExterQual",		DataType::Utf8),
-        Field::new("ExterCond",		DataType::Utf8),
-        Field::new("Foundation",	DataType::Utf8),
-        Field::new("BsmtQual",		DataType::Utf8),
-        Field::new("BsmtCond",		DataType::Utf8),
-        Field::new("BsmtExposure",	DataType::Utf8),
-        Field::new("BsmtFinType1",	DataType::Utf8),
-        Field::new("BsmtFinSF1",	DataType::UInt32),
-        Field::new("BsmtFinType2",	DataType::Utf8),
-        Field::new("BsmtFinSF2",	DataType::UInt32),
-        Field::new("BsmtUnfSF",		DataType::UInt32),
-        Field::new("TotalBsmtSF",	DataType::UInt32),
-        Field::new("Heating",		DataType::Utf8),
-        Field::new("HeatingQC",		DataType::Utf8),
-        Field::new("CentralAir",	DataType::Utf8),
-        Field::new("Electrical",	DataType::Utf8),
-        Field::new("1stFlrSF",		DataType::UInt32),
-        Field::new("2ndFlrSF",		DataType::UInt32),
-        Field::new("LowQualFinSF",	DataType::UInt32),
-        Field::new("GrLivArea",		DataType::UInt32),
-        Field::new("BsmtFullBath",	DataType::UInt32),
-        Field::new("BsmtHalfBath",	DataType::UInt32),
-        Field::new("FullBath",		DataType::UInt32),
-        Field::new("HalfBath",		DataType::UInt32),
-        Field::new("BedroomAbvGr",	DataType::UInt32),
-        Field::new("KitchenAbvGr",	DataType::UInt32),
-        Field::new("KitchenQual",	DataType::Utf8),
-        Field::new("TotRmsAbvGrd",	DataType::UInt32),
-        Field::new("Functional",	DataType::Utf8),
-        Field::new("Fireplaces",	DataType::UInt32),
-        Field::new("FireplaceQu",	DataType::Utf8),
-        Field::new("GarageType",	DataType::Utf8),
-        Field::new("GarageYrBlt",	DataType::UInt32),
-        Field::new("GarageFinish",	DataType::Utf8),
-        Field::new("GarageCars",	DataType::UInt32),
-        Field::new("GarageArea",	DataType::UInt32),
-        Field::new("GarageQual",	DataType::Utf8),
-        Field::new("GarageCond",	DataType::Utf8),
-        Field::new("PavedDrive",	DataType::Utf8),
-        Field::new("WoodDeckSF",	DataType::UInt32),
-        Field::new("OpenPorchSF",	DataType::UInt32),
-        Field::new("EnclosedPorch"  DataType::UInt32),
-        Field::new("3SsnPorch",		DataType::UInt32),
-        Field::new("ScreenPorch",	DataType::UInt32),
-        Field::new("PoolArea",		DataType::UInt32),
-        Field::new("PoolQC",		DataType::Utf8),
-        Field::new("Fence",			DataType::Utf8),
-        Field::new("MiscFeature",	DataType::Utf8),
-        Field::new("MiscVal",		DataType::UInt32),
-        Field::new("MoSold",		DataType::UInt32),
-        Field::new("YrSold",		DataType::UInt32),
-        Field::new("SaleType",		DataType::Utf8),
-        Field::new("SaleCondition"  DataType::Utf8),
-        Field::new("SalePrice",		DataType::UInt32),
-    ])
-}
