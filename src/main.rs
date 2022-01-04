@@ -1,3 +1,5 @@
+use std::io::Write;
+use std::fs::File;
 use polars::prelude::*;
 use smartcore::linalg::naive::dense_matrix::DenseMatrix;
 use smartcore::linear::ridge_regression::{RidgeRegression, RidgeRegressionParameters};
@@ -32,13 +34,26 @@ fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     )
 }
 
+fn save_predict(ids: Vec<f64>, pred: Vec<f64>) {
+    let path = "data/submission.csv";
+    let mut file = File::create(path).unwrap();
+
+    for it in ids.iter().zip(pred.iter()) {
+        let (id, price) = it;
+        writeln!(&mut file, "{}, {}", id, price).unwrap();
+    }
+}
+
 fn main() -> Result<()> {
     let df_test = csv_to_df("data/test.csv")?;
     let df_train = csv_to_df("data/train.csv")?;
 
     let feature = df_to_dm(&df_train)?;
-    let feature_test = df_to_dm(&df_test)?;
     let target = df_train.select(vec!["SalePrice"])?
+        .to_ndarray::<Float64Type>()?
+        .into_raw_vec();
+    let test_feat = df_to_dm(&df_test)?;
+    let test_ids = df_test.select(vec!["Id"])?
         .to_ndarray::<Float64Type>()?
         .into_raw_vec();
 
@@ -48,10 +63,10 @@ fn main() -> Result<()> {
         &target,
         RidgeRegressionParameters::default().with_alpha(0.8),
     )
-    .and_then(|rr| rr.predict(&feature_test))
+    .and_then(|rr| rr.predict(&test_feat))
     .unwrap();
 
-    dbg!(&rr_predicted);
+    save_predict(test_ids, rr_predicted);
 
     Ok(())
 }
