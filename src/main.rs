@@ -38,6 +38,7 @@ fn save_predict(ids: Vec<f64>, pred: Vec<f64>) {
     let path = "data/submission.csv";
     let mut file = File::create(path).unwrap();
 
+    writeln!(&mut file, "Id, SalePrice").unwrap();
     for it in ids.iter().zip(pred.iter()) {
         let (id, price) = it;
         writeln!(&mut file, "{}, {}", id, price).unwrap();
