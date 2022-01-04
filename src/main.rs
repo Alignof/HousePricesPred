@@ -52,11 +52,11 @@ fn main() -> Result<()> {
     let target = df_train.select(vec!["SalePrice"])?
         .to_ndarray::<Float64Type>()?
         .into_raw_vec();
+
     let test_feat = df_to_dm(&df_test)?;
     let test_ids = df_test.select(vec!["Id"])?
         .to_ndarray::<Float64Type>()?
         .into_raw_vec();
-
 
     let rr_predicted = RidgeRegression::fit(
         &feature,
