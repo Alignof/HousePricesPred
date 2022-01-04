@@ -1,4 +1,5 @@
 use polars::prelude::*;
+use smartcore::linalg::naive::dense_matrix::DenseMatrix;
 
 fn main() -> Result<()> {
     let train_path = "data/train.csv";
@@ -8,9 +9,8 @@ fn main() -> Result<()> {
         .has_header(true)
         .finish()?;
 
-    let train_df = df.select(
+    let feature_df = df.select(
         vec![
-            "Id",
             "LotArea",
             "OverallQual",
             "OverallCond",
@@ -19,8 +19,15 @@ fn main() -> Result<()> {
             "GarageCars",
         ]        
     )?;
+    let target_df = df.select(vec!["Id"])?;
 
-    dbg!(train_df);
+    let feature = DenseMatrix::from_vec(
+        feature_df.height(),
+        feature_df.width(),
+        &feature_df.to_ndarray::<Float64Type>()?.into_raw_vec()
+    );
+
+    dbg!(feature);
 
     Ok(())
 }
