@@ -12,9 +12,7 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
     )
 }
 
-fn main() -> Result<()> {
-    let df_test = csv_to_df("data/test.csv")?;
-    let df_train = csv_to_df("data/train.csv")?;
+fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     let selected_feature = vec![
         "LotArea",
         "OverallQual",
@@ -23,23 +21,27 @@ fn main() -> Result<()> {
         "1stFlrSF",
         "GarageCars",
     ];
+    let feature = df.select(&selected_feature)?;
 
-    let feature = df_train.select(&selected_feature)?;
-    let feature = DenseMatrix::from_vec(
-        feature.height(),
-        feature.width(),
-        &feature.to_ndarray::<Float64Type>()?.into_raw_vec()
-    );
+    Ok(
+        DenseMatrix::from_vec(
+            feature.height(),
+            feature.width(),
+            &feature.to_ndarray::<Float64Type>()?.into_raw_vec()
+        )
+    )
+}
+
+fn main() -> Result<()> {
+    let df_test = csv_to_df("data/test.csv")?;
+    let df_train = csv_to_df("data/train.csv")?;
+
+    let feature = df_to_dm(&df_train)?;
+    let feature_test = df_to_dm(&df_test)?;
     let target = df_train.select(vec!["SalePrice"])?
         .to_ndarray::<Float64Type>()?
         .into_raw_vec();
 
-    let feature_test = df_test.select(&selected_feature)?;
-    let feature_test = DenseMatrix::from_vec(
-        feature_test.height(),
-        feature_test.width(),
-        &feature_test.to_ndarray::<Float64Type>()?.into_raw_vec()
-    );
 
     let rr_predicted = RidgeRegression::fit(
         &feature,
