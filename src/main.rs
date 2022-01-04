@@ -15,15 +15,16 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
 }
 
 fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
-    let selected_feature = vec![
-        "LotArea",
-        "OverallQual",
-        "OverallCond",
-        "TotalBsmtSF",
-        "1stFlrSF",
-        "GarageCars",
-    ];
-    let feature = df.select(&selected_feature)?;
+    let feature = df.select(
+        vec![
+            "LotArea",
+            "OverallQual",
+            "OverallCond",
+            "TotalBsmtSF",
+            "1stFlrSF",
+            "GarageCars",
+        ]
+    )?;
 
     Ok(
         DenseMatrix::from_vec(
@@ -35,8 +36,8 @@ fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
 }
 
 fn save_predict(ids: Vec<f64>, pred: Vec<f64>) {
-    let path = "data/submission.csv";
-    let mut file = File::create(path).unwrap();
+    let save_path = "data/submission.csv";
+    let mut file = File::create(save_path).unwrap();
 
     writeln!(&mut file, "Id,SalePrice").unwrap();
     for (id, price) in ids.iter().zip(pred.iter()) {
@@ -61,7 +62,7 @@ fn main() -> Result<()> {
     let rr_predicted = RidgeRegression::fit(
         &feature,
         &target,
-        RidgeRegressionParameters::default().with_alpha(0.8),
+        RidgeRegressionParameters::default().with_alpha(0.5),
     )
     .and_then(|rr| rr.predict(&test_feat))
     .unwrap();
