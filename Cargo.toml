@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-polars = "0.18.0" 
+polars = {version = "0.18.0", features = ["ndarray"]} 
 smartcore = "0.2.0"
