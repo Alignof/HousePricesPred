@@ -1,8 +1,8 @@
+use std::fs::File;
+use std::io::Write;
 use polars::prelude::*;
 use smartcore::linalg::naive::dense_matrix::DenseMatrix;
 use smartcore::linear::ridge_regression::{RidgeRegression, RidgeRegressionParameters};
-use std::fs::File;
-use std::io::Write;
 
 fn csv_to_df(file_path: &str) -> Result<DataFrame> {
     CsvReader::from_path(file_path)?
@@ -17,9 +17,9 @@ fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
         "LotArea",
         "OverallQual",
         "OverallCond",
-        "TotalBsmtSF",
+        "GarageArea",
+        "PoolArea",
         "1stFlrSF",
-        "GarageCars",
     ])?;
 
     Ok(DenseMatrix::from_vec(
