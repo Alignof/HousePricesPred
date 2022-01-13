@@ -14,12 +14,26 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
 
 fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     let feature = df.select(vec![
+        "LotFrontage",
         "LotArea",
         "OverallQual",
         "OverallCond",
-        "GarageArea",
-        "PoolArea",
+        "MasVnrArea",
+        "TotalBsmtSF",
         "1stFlrSF",
+        "2ndFlrSF",
+        "FullBath",
+        "BedroomAbvGr",
+        "KitchenAbvGr",
+        "TotRmsAbvGrd",
+        "GarageArea",
+        "WoodDeckSF",
+        "OpenPorchSF",
+        "EnclosedPorch",
+        "3SsnPorch",
+        "ScreenPorch",
+        "PoolArea",
+        "MiscVal",
     ])?;
 
     Ok(DenseMatrix::from_vec(
@@ -58,7 +72,7 @@ fn main() -> Result<()> {
     let rr_predicted = RidgeRegression::fit(
         &feature,
         &target,
-        RidgeRegressionParameters::default().with_alpha(1.9),
+        RidgeRegressionParameters::default().with_alpha(5.0),
     )
     .and_then(|rr| rr.predict(&test_feat))
     .unwrap();
