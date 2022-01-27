@@ -15,7 +15,7 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
 }
 
 fn select_feature(df: &DataFrame) -> Result<DataFrame> {
-    Ok(df.select(vec![   
+    df.select(vec![   
         "Neighborhood",
         "MSZoning",
         "Utilities",
@@ -60,39 +60,40 @@ fn select_feature(df: &DataFrame) -> Result<DataFrame> {
     ])?
     .get_columns()
     .iter()
-    .map(|ser| {
+    .flat_map(|ser| {
         match ser.dtype() {
-            DataType::Utf8 => ser.strict_cast(&DataType::Int64).unwrap_or(ser.clone()),
-            _ => ser.clone(),
+            DataType::Utf8 => {
+                match ser.strict_cast(&DataType::UInt64) {
+                    Ok(ser) => vec!(ser),
+                    Err(_) => ser.to_dummies().unwrap().get_columns().to_vec(),
+                }
+            },
+            _ => vec!(ser.clone())
         }
     })
-    .collect::<DataFrame>())
+    .collect::<DataFrame>()
+    .fill_null(FillNullStrategy::Mean)
 }
 
 fn get_features_df(train: DataFrame, test: DataFrame) -> Result<(DataFrame, DataFrame)> {
     let feat_train = select_feature(&train)?;
     let feat_test = select_feature(&test)?;
-    let features = feat_train.vstack(&feat_test)?
+
+    // drop columns exists either
+    let feat_train = feat_train
         .get_columns()
         .iter()
-        .flat_map(|ser| {
-            match ser.dtype() {
-                DataType::Utf8 => {
-                    ser.to_dummies()
-                        .unwrap()
-                        .get_columns()
-                        .iter()
-                        .filter(|ser| ser.sum() != Some(0))
-                        .map(|ser| ser.clone())
-                        .collect::<Vec<Series>>()
-                }
-                _ => vec!(ser.clone())
-            }
-        })
-        .collect::<DataFrame>()
-        .fill_null(FillNullStrategy::Mean)?;
+        .filter(|ser| feat_test.column(ser.name()).is_ok())
+        .map(|ser| ser.clone())
+        .collect::<DataFrame>();
+    let feat_test = feat_test
+        .get_columns()
+        .iter()
+        .filter(|ser| feat_train.column(ser.name()).is_ok())
+        .map(|ser| ser.clone())
+        .collect::<DataFrame>();
 
-    Ok((features.head(Some(train.height())), features.tail(Some(test.height()))))
+    Ok((feat_train, feat_test))
 }
 
 fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
@@ -128,7 +129,6 @@ fn main() -> Result<()> {
         .into_raw_vec();
 
     let (feat_train, feat_test) = get_features_df(df_train, df_test)?;
-    dbg!(&feat_train[27].sum::<i32>());
 
     let feature = df_to_dm(&feat_train)?;
     let feat_for_pred = df_to_dm(&feat_test)?;
