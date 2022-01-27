@@ -16,6 +16,8 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
 
 fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     let feature = df.select(vec![   
+        "Neighborhood",
+        "MSZoning",
         "LotFrontage",
         "LotArea",
         "OverallQual",
@@ -39,11 +41,15 @@ fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     ])?
     .get_columns()
     .iter()
-    .map(|ser| {
-        if ser.dtype() == &DataType::Utf8 {
-            ser.cast(&DataType::UInt64).unwrap()
-        } else {
-            ser.clone()
+    .flat_map(|ser| {
+        match ser.dtype() {
+            DataType::Utf8 => {
+                match ser.strict_cast(&DataType::UInt64) {
+                    Ok(ser) => vec!(ser),
+                    Err(_) => ser.to_dummies().unwrap().get_columns().to_vec(),
+                }
+            },
+            _ => vec!(ser.clone())
         }
     })
     .collect::<DataFrame>()
