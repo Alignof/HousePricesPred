@@ -82,13 +82,13 @@ fn get_features_df(train: DataFrame, test: DataFrame) -> Result<(DataFrame, Data
         .get_columns()
         .iter()
         .filter(|ser| feat_test.column(ser.name()).is_ok())
-        .map(|ser| ser.clone())
+        .cloned()
         .collect::<DataFrame>();
     let feat_test = feat_test
         .get_columns()
         .iter()
         .filter(|ser| feat_train.column(ser.name()).is_ok())
-        .map(|ser| ser.clone())
+        .cloned()
         .collect::<DataFrame>();
 
     Ok((feat_train, feat_test))
