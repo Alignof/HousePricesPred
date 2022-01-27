@@ -129,13 +129,13 @@ fn main() -> Result<()> {
         .into_raw_vec();
 
     let (feat_train, feat_test) = get_features_df(df_train, df_test)?;
-
     let feature = df_to_dm(&feat_train)?;
     let feat_for_pred = df_to_dm(&feat_test)?;
+
     let rr_predicted = RidgeRegression::fit(
         &feature,
         &target,
-        RidgeRegressionParameters::default().with_alpha(0.1),
+        RidgeRegressionParameters::default().with_alpha(5.0),
     )
     .and_then(|rr| rr.predict(&feat_for_pred))
     .unwrap();
