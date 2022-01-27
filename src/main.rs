@@ -15,7 +15,7 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
 }
 
 fn select_feature(df: &DataFrame) -> Result<DataFrame> {
-    df.select(vec![   
+    Ok(df.select(vec![   
         "Neighborhood",
         /*
         "MSZoning",
@@ -35,16 +35,16 @@ fn select_feature(df: &DataFrame) -> Result<DataFrame> {
         "FireplaceQu",
         "GarageType",
         "GarageQual",
+        "SaleType",
+        */
         "GarageCond",
         "Fence",
-        "SaleType",
         "SaleCondition",
         "LotFrontage",
         "LotArea",
         "OverallQual",
         "OverallCond",
         "MasVnrArea",
-        */
         "TotalBsmtSF",
         "1stFlrSF",
         "2ndFlrSF",
@@ -59,23 +59,36 @@ fn select_feature(df: &DataFrame) -> Result<DataFrame> {
         "3SsnPorch",
         "ScreenPorch",
         "PoolArea",
-        "MiscVal",
     ])?
     .get_columns()
     .iter()
-    .flat_map(|ser| {
+    .map(|ser| {
         match ser.dtype() {
-            DataType::Utf8 => {
-                match ser.strict_cast(&DataType::UInt64) {
-                    Ok(ser) => vec!(ser),
-                    Err(_) => ser.to_dummies().unwrap().get_columns().to_vec(),
-                }
-            },
-            _ => vec!(ser.clone())
+            DataType::Utf8 => ser.strict_cast(&DataType::Int64).unwrap_or(ser.clone()),
+            _ => ser.clone(),
         }
     })
-    .collect::<DataFrame>()
-    .fill_null(FillNullStrategy::Mean)
+    .collect::<DataFrame>())
+}
+
+fn get_features_df(train: DataFrame, test: DataFrame) -> Result<(DataFrame, DataFrame)> {
+    let feat_train = select_feature(&train)?;
+    let feat_test = select_feature(&test)?;
+    let features = feat_train.vstack(&feat_test)?
+        .get_columns()
+        .iter()
+        .flat_map(|ser| {
+            match ser.dtype() {
+                DataType::Utf8 => ser.to_dummies().unwrap().get_columns().to_vec(),
+                _ => vec!(ser.clone())
+            }
+        })
+        .collect::<DataFrame>()
+        .fill_null(FillNullStrategy::Mean)?;
+
+    dbg!(&train.height());
+    dbg!(&test.height());
+    Ok((features.head(Some(train.height())), features.tail(Some(test.height()))))
 }
 
 fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
@@ -110,17 +123,18 @@ fn main() -> Result<()> {
         .to_ndarray::<Float64Type>()?
         .into_raw_vec();
 
-    let feat_train = select_feature(&df_train)?;
-    let feat_test = select_feature(&df_test)?;
+    let (feat_train, feat_test) = get_features_df(df_train, df_test)?;
+    dbg!(&feat_train);
+    dbg!(&feat_test);
 
     let feature = df_to_dm(&feat_train)?;
-    let test_feat = df_to_dm(&feat_test)?;
+    let feat_for_pred = df_to_dm(&feat_test)?;
     let rr_predicted = RidgeRegression::fit(
         &feature,
         &target,
-        RidgeRegressionParameters::default().with_alpha(5.0),
+        RidgeRegressionParameters::default().with_alpha(0.5),
     )
-    .and_then(|rr| rr.predict(&test_feat))
+    .and_then(|rr| rr.predict(&feat_for_pred))
     .unwrap();
 
     save_predict(test_ids, rr_predicted);
