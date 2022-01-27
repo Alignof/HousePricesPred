@@ -6,14 +6,16 @@ use smartcore::linear::ridge_regression::{RidgeRegression, RidgeRegressionParame
 
 fn csv_to_df(file_path: &str) -> Result<DataFrame> {
     CsvReader::from_path(file_path)?
-        .infer_schema(None)
+        .with_n_threads(Some(4))
+        .with_null_values(Some(NullValues::AllColumns("NA".to_string())))
         .with_delimiter(b',')
+        .infer_schema(None)
         .has_header(true)
         .finish()
 }
 
 fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
-    let feature = df.select(vec![
+    let feature = df.select(vec![   
         "LotFrontage",
         "LotArea",
         "OverallQual",
@@ -34,7 +36,18 @@ fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
         "ScreenPorch",
         "PoolArea",
         "MiscVal",
-    ])?;
+    ])?
+    .get_columns()
+    .iter()
+    .map(|ser| {
+        if ser.dtype() == &DataType::Utf8 {
+            ser.cast(&DataType::UInt64).unwrap()
+        } else {
+            ser.clone()
+        }
+    })
+    .collect::<DataFrame>()
+    .fill_null(FillNullStrategy::Mean)?;
 
     Ok(DenseMatrix::from_vec(
         feature.height(),
