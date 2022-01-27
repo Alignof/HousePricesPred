@@ -17,7 +17,6 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
 fn select_feature(df: &DataFrame) -> Result<DataFrame> {
     Ok(df.select(vec![   
         "Neighborhood",
-        /*
         "MSZoning",
         "Utilities",
         "Exterior1st",
@@ -36,7 +35,6 @@ fn select_feature(df: &DataFrame) -> Result<DataFrame> {
         "GarageType",
         "GarageQual",
         "SaleType",
-        */
         "GarageCond",
         "Fence",
         "SaleCondition",
@@ -79,15 +77,21 @@ fn get_features_df(train: DataFrame, test: DataFrame) -> Result<(DataFrame, Data
         .iter()
         .flat_map(|ser| {
             match ser.dtype() {
-                DataType::Utf8 => ser.to_dummies().unwrap().get_columns().to_vec(),
+                DataType::Utf8 => {
+                    ser.to_dummies()
+                        .unwrap()
+                        .get_columns()
+                        .iter()
+                        .filter(|ser| ser.sum() != Some(0))
+                        .map(|ser| ser.clone())
+                        .collect::<Vec<Series>>()
+                }
                 _ => vec!(ser.clone())
             }
         })
         .collect::<DataFrame>()
         .fill_null(FillNullStrategy::Mean)?;
 
-    dbg!(&train.height());
-    dbg!(&test.height());
     Ok((features.head(Some(train.height())), features.tail(Some(test.height()))))
 }
 
@@ -124,15 +128,14 @@ fn main() -> Result<()> {
         .into_raw_vec();
 
     let (feat_train, feat_test) = get_features_df(df_train, df_test)?;
-    dbg!(&feat_train);
-    dbg!(&feat_test);
+    dbg!(&feat_train[27].sum::<i32>());
 
     let feature = df_to_dm(&feat_train)?;
     let feat_for_pred = df_to_dm(&feat_test)?;
     let rr_predicted = RidgeRegression::fit(
         &feature,
         &target,
-        RidgeRegressionParameters::default().with_alpha(0.5),
+        RidgeRegressionParameters::default().with_alpha(0.1),
     )
     .and_then(|rr| rr.predict(&feat_for_pred))
     .unwrap();
