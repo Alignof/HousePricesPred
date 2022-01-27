@@ -14,8 +14,8 @@ fn csv_to_df(file_path: &str) -> Result<DataFrame> {
         .finish()
 }
 
-fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
-    let feature = df.select(vec![   
+fn select_feature(df: &DataFrame) -> Result<DataFrame> {
+    df.select(vec![   
         "Neighborhood",
         /*
         "MSZoning",
@@ -75,12 +75,14 @@ fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
         }
     })
     .collect::<DataFrame>()
-    .fill_null(FillNullStrategy::Mean)?;
+    .fill_null(FillNullStrategy::Mean)
+}
 
+fn df_to_dm(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     Ok(DenseMatrix::from_vec(
-        feature.height(),
-        feature.width(),
-        &feature.to_ndarray::<Float64Type>()?.into_raw_vec(),
+        df.height(),
+        df.width(),
+        &df.to_ndarray::<Float64Type>()?.into_raw_vec(),
     ))
 }
 
@@ -98,18 +100,21 @@ fn main() -> Result<()> {
     let df_test = csv_to_df("data/test.csv")?;
     let df_train = csv_to_df("data/train.csv")?;
 
-    let feature = df_to_dm(&df_train)?;
     let target = df_train
         .select(vec!["SalePrice"])?
         .to_ndarray::<Float64Type>()?
         .into_raw_vec();
 
-    let test_feat = df_to_dm(&df_test)?;
     let test_ids = df_test
         .select(vec!["Id"])?
         .to_ndarray::<Float64Type>()?
         .into_raw_vec();
 
+    let feat_train = select_feature(&df_train)?;
+    let feat_test = select_feature(&df_test)?;
+
+    let feature = df_to_dm(&feat_train)?;
+    let test_feat = df_to_dm(&feat_test)?;
     let rr_predicted = RidgeRegression::fit(
         &feature,
         &target,
