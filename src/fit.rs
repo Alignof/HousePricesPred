@@ -5,6 +5,7 @@ use smartcore::svm::{
     Kernels,
     svr::{SVRParameters, SVR},
 };
+use smartcore::ensemble::random_forest_regressor::RandomForestRegressor;
 
 #[allow(dead_code)]
 pub fn elastic_net(feature: DenseMatrix<f64>, target: Vec<f64>, feat_for_pred: DenseMatrix<f64>) -> Vec<f64> {
@@ -44,4 +45,16 @@ pub fn support_vector_regressor(feature: DenseMatrix<f64>, target: Vec<f64>, fea
     .and_then(|svm| svm.predict(&feat_for_pred))
     .unwrap()
 }
+
+#[allow(dead_code)]
+pub fn random_forest(feature: DenseMatrix<f64>, target: Vec<f64>, feat_for_pred: DenseMatrix<f64>) -> Vec<f64> {
+    RandomForestRegressor::fit(
+        &feature,
+        &target,
+        Default::default()
+    )
+    .and_then(|rf| rf.predict(&feat_for_pred))
+    .unwrap()
+}
+
 
