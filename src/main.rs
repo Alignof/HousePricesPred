@@ -133,7 +133,7 @@ fn main() -> Result<()> {
     let feature = df_to_dm(&feat_train)?;
     let feat_for_pred = df_to_dm(&feat_test)?;
 
-    let rr_predicted = fit::elastic_net(feature, target, feat_for_pred);
+    let rr_predicted = fit::support_vector_regressor(feature, target, feat_for_pred);
 
     save_predict(test_ids, rr_predicted);
 
