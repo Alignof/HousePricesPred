@@ -1,8 +1,9 @@
+mod fit;
+
 use std::fs::File;
 use std::io::Write;
 use polars::prelude::*;
 use smartcore::linalg::naive::dense_matrix::DenseMatrix;
-use smartcore::linear::ridge_regression::{RidgeRegression, RidgeRegressionParameters};
 
 fn csv_to_df(file_path: &str) -> Result<DataFrame> {
     CsvReader::from_path(file_path)?
@@ -132,13 +133,7 @@ fn main() -> Result<()> {
     let feature = df_to_dm(&feat_train)?;
     let feat_for_pred = df_to_dm(&feat_test)?;
 
-    let rr_predicted = RidgeRegression::fit(
-        &feature,
-        &target,
-        RidgeRegressionParameters::default().with_alpha(10.0),
-    )
-    .and_then(|rr| rr.predict(&feat_for_pred))
-    .unwrap();
+    let rr_predicted = fit::elastic_net(feature, target, feat_for_pred);
 
     save_predict(test_ids, rr_predicted);
 

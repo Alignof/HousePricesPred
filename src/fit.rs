@@ -1,4 +1,7 @@
-fn elastic_net(feature: DenseMatrix, target: DenseMatrix) {
+use smartcore::linalg::naive::dense_matrix::DenseMatrix;
+use smartcore::linear::elastic_net::{ElasticNet, ElasticNetParameters};
+
+pub fn elastic_net(feature: DenseMatrix<f64>, target: Vec<f64>, feat_for_pred: DenseMatrix<f64>) -> Vec<f64> {
     ElasticNet::fit(
         &feature,
         &target,
