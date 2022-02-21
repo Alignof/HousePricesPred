@@ -1,8 +1,9 @@
+mod fit;
+
 use std::fs::File;
 use std::io::Write;
 use polars::prelude::*;
 use smartcore::linalg::naive::dense_matrix::DenseMatrix;
-use smartcore::linear::ridge_regression::{RidgeRegression, RidgeRegressionParameters};
 
 fn csv_to_df(file_path: &str) -> Result<DataFrame> {
     CsvReader::from_path(file_path)?
@@ -19,24 +20,25 @@ fn select_feature(df: &DataFrame) -> Result<DataFrame> {
         "Neighborhood",
         "MSZoning",
         "Utilities",
-        "RoofStyle",
-        "LotConfig",
-        "BldgType",
         "Exterior1st",
+        "Exterior2nd",
         "MasVnrType",
         "ExterQual",
         "ExterCond",
         "Foundation",
         "BsmtQual",
         "BsmtCond",
+        "BsmtExposure",
         "Heating",
         "HeatingQC",
         "KitchenQual",
         "FireplaceQu",
         "GarageType",
         "GarageQual",
+        "SaleType",
         "GarageCond",
         "Fence",
+        "SaleCondition",
         "LotFrontage",
         "LotArea",
         "OverallQual",
@@ -50,10 +52,11 @@ fn select_feature(df: &DataFrame) -> Result<DataFrame> {
         "KitchenAbvGr",
         "TotRmsAbvGrd",
         "GarageArea",
-        "MiscFeature",
-        "MiscVal",
         "WoodDeckSF",
+        "OpenPorchSF",
         "EnclosedPorch",
+        "3SsnPorch",
+        "ScreenPorch",
         "PoolArea",
     ])?
     .get_columns()
@@ -130,13 +133,7 @@ fn main() -> Result<()> {
     let feature = df_to_dm(&feat_train)?;
     let feat_for_pred = df_to_dm(&feat_test)?;
 
-    let rr_predicted = RidgeRegression::fit(
-        &feature,
-        &target,
-        RidgeRegressionParameters::default().with_alpha(5.0),
-    )
-    .and_then(|rr| rr.predict(&feat_for_pred))
-    .unwrap();
+    let rr_predicted = fit::ridge_regression(feature, target, feat_for_pred);
 
     save_predict(test_ids, rr_predicted);
 
