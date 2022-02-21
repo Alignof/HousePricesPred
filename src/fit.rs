@@ -13,8 +13,8 @@ pub fn elastic_net(feature: DenseMatrix<f64>, target: Vec<f64>, feat_for_pred: D
         &feature,
         &target,
         ElasticNetParameters::default()
-            .with_alpha(10.0)
-            .with_l1_ratio(0.5)
+            .with_alpha(60.0)
+            .with_l1_ratio(0.7)
     )
     .and_then(|lr| lr.predict(&feat_for_pred))
     .unwrap()
